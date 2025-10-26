@@ -79,7 +79,8 @@ def load_room_data(room_list_url):
 
 def create_authenticated_session(cookie_string):
     """手動で取得したCookie文字列から認証済みRequestsセッションを構築する"""
-    st.info("手動設定されたCookieを使用して認証セッションを構築します...")
+    #st.info("手動設定されたCookieを使用して認証セッションを構築します...")
+    st.info("認証セッションを構築します...")
     session = requests.Session()
     try:
         cookies_dict = {}
@@ -92,12 +93,14 @@ def create_authenticated_session(cookie_string):
         session.cookies.update(cookies_dict)
         
         if not cookies_dict:
-             st.error("🚨 Cookie文字列から有効なCookieを解析できませんでした。")
+             #st.error("🚨 Cookie文字列から有効なCookieを解析できませんでした。")
+             st.error("🚨 有効な認証セッションをを解析できませんでした。")
              return None
              
         return session
     except Exception as e:
-        st.error(f"Cookie解析中にエラーが発生しました: {e}")
+        #st.error(f"Cookie解析中にエラーが発生しました: {e}")
+        st.error(f"認証セッションを解析中にエラーが発生しました: {e}")
         return None
 
 # ==============================================================================
@@ -107,7 +110,8 @@ def create_authenticated_session(cookie_string):
 def scrape_live_archives(session, room_url_key):
     """アーカイブページにアクセスし、配信アーカイブデータとダウンロードリンクを抽出する"""
     ARCHIVE_URL = f"{BASE_URL}/room/{room_url_key}/live_archives"
-    st.info(f"配信アーカイブページにアクセス中... (URL: {ARCHIVE_URL})")
+    #st.info(f"配信アーカイブページにアクセス中... (URL: {ARCHIVE_URL})")
+    st.info(f"配信アーカイブページにアクセス中...")
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
