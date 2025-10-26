@@ -15,7 +15,8 @@ try:
     # 既存のオーガナイザーCookieを使用
     AUTH_COOKIE_STRING = st.secrets["showroom"]["auth_cookie_string"]
 except KeyError:
-    st.error("🚨 Secretsの設定ファイルに 'showroom'セクション、または 'auth_cookie_string' が見つかりません。")
+    #st.error("🚨 Secretsの設定ファイルに 'showroom'セクション、または 'auth_cookie_string' が見つかりません。")
+    st.error("🚨 認証設定がされていません。")
     st.stop()
 
 BASE_URL = "https://www.showroom-live.com"
@@ -141,7 +142,8 @@ def scrape_live_archives(session, room_url_key):
     
     if not table:
         if "ログイン" in r.text or "会員登録" in r.text or "サインイン" in r.text:
-            st.error("🚨 Cookieが期限切れです。アーカイブページの内容がログインページのものと判定されました。新しいCookieを取得してください。")
+            #st.error("🚨 Cookieが期限切れです。アーカイブページの内容がログインページのものと判定されました。新しいCookieを取得してください。")
+            st.error("🚨 認証切れです。管理者に照会してください。")
             return None, None
             
         st.warning("⚠️ 配信アーカイブが見つかりませんでした。データがまだ生成されていないか、ページ構造が変更された可能性があります。")
