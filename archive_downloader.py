@@ -15,7 +15,6 @@ try:
     # 既存のオーガナイザーCookieを使用
     AUTH_COOKIE_STRING = st.secrets["showroom"]["auth_cookie_string"]
 except KeyError:
-    #st.error("🚨 Secretsの設定ファイルに 'showroom'セクション、または 'auth_cookie_string' が見つかりません。")
     st.error("🚨 認証設定がされていません。")
     st.stop()
 
@@ -27,14 +26,14 @@ ROOM_LIST_URL = "https://mksoul-pro.com/showroom/file/room_list.csv"
 JST = datetime.timezone(datetime.timedelta(hours=9), 'JST') 
 
 # ==============================================================================
-# ----------------- CSVデータ処理関数 -----------------
+# ----------------- CSVデータ処理関数 (修正: ID/URLマッピング変更) -----------------
 # ==============================================================================
 
 @st.cache_data(ttl=3600) # 1時間キャッシュ
 def load_room_data(room_list_url):
     """
-    CSVからルームデータ（アカウントID -> ルームURL）のマッピングを読み込む。
-    CSV構造: ... [3列目(C): ルームURL] [4列目(D): アカウントID] ...
+    CSVからルームデータ（アカウントID -> ルームID）のマッピングを読み込む。
+    CSV構造: [1列目(A): ルームID] ... [4列目(D): アカウントID] ...
     """
     try:
         st.info("ルームリストCSVをダウンロード中...")
@@ -49,20 +48,21 @@ def load_room_data(room_list_url):
 
         csv_file = io.StringIO(csv_data)
         
-        # ルームURL（C列、インデックス2）を強制的に文字列として読み込む
-        df = pd.read_csv(csv_file, dtype={2: str})
+        # 🚨 修正点①: ルームID(A列=インデックス0)を強制的に文字列として読み込む
+        # C列は使わないため、A列とD列のみを対象とする
+        df = pd.read_csv(csv_file, dtype={0: str, 3: str})
         
-        # ユーザー指定の列インデックス（0始まりで C=2, D=3）
-        # 列名ではなく、インデックス3（アカウントID）をキー、インデックス2（ルームURL）を値とする辞書を作成
+        # ユーザー指定の列インデックス（0始まりで A=0, D=3）
         if df.shape[1] < 4:
-            st.error(f"🚨 CSVの列数が不足しています。現在の列数: {df.shape[1]}。C列(ルームURL)とD列(アカウントID)が必要です。")
+            st.error(f"🚨 CSVの列数が不足しています。現在の列数: {df.shape[1]}。A列(ルームID)とD列(アカウントID)が必要です。")
             return None
         
         account_id_col_name = df.columns[3]
-        room_url_col_name = df.columns[2]
+        room_id_col_name = df.columns[0]
         
-        # 辞書を構築: {アカウントID: ルームURL}
-        room_map = df.set_index(account_id_col_name)[room_url_col_name].dropna().astype(str).to_dict()
+        # 🚨 修正点②: 辞書を構築: {アカウントID: ルームID}
+        # 値が数値になっていないか念のためastype(str)を適用
+        room_map = df.set_index(account_id_col_name)[room_id_col_name].dropna().astype(str).to_dict()
         
         return room_map
     
@@ -75,12 +75,47 @@ def load_room_data(room_list_url):
         return None
 
 # ==============================================================================
+# ----------------- APIアクセス関数 (新規追加) -----------------
+# ==============================================================================
+
+@st.cache_data(ttl=600) # 10分キャッシュ
+def get_room_url_key(room_id):
+    """ルームIDからSHOWROOMのAPIを叩いてroom_url_key（ルームURL）を取得する"""
+    PROFILE_API_URL = f"{BASE_URL}/api/room/profile?room_id={room_id}"
+    st.info(f"ルームID `{room_id}` に基づき、APIから正確なルームURLキーを取得中...")
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+    }
+
+    try:
+        r = requests.get(PROFILE_API_URL, headers=headers, timeout=5)
+        r.raise_for_status()
+        
+        data = r.json()
+        room_url_key = data.get("room_url_key")
+        
+        if room_url_key:
+            return room_url_key
+        else:
+            st.error(f"🚨 API応答に `room_url_key` が含まれていません。ルームID `{room_id}` が不正な可能性があります。")
+            return None
+            
+    except requests.exceptions.RequestException as e:
+        st.error(f"🚨 ルームプロフィールAPIへのアクセスに失敗しました。ルームIDが不正、またはネットワークエラーです: {e}")
+        return None
+    except Exception as e:
+        st.error(f"🚨 API応答の解析に失敗しました: {e}")
+        return None
+
+# ==============================================================================
 # ----------------- セッション構築関数 -----------------
+# ... (変更なし) ...
 # ==============================================================================
 
 def create_authenticated_session(cookie_string):
     """手動で取得したCookie文字列から認証済みRequestsセッションを構築する"""
-    #st.info("手動設定されたCookieを使用して認証セッションを構築します...")
     st.info("認証セッションを構築します...")
     session = requests.Session()
     try:
@@ -94,24 +129,22 @@ def create_authenticated_session(cookie_string):
         session.cookies.update(cookies_dict)
         
         if not cookies_dict:
-             #st.error("🚨 Cookie文字列から有効なCookieを解析できませんでした。")
-             st.error("🚨 有効な認証セッションをを解析できませんでした。")
-             return None
+            st.error("🚨 有効な認証セッションをを解析できませんでした。")
+            return None
              
         return session
     except Exception as e:
-        #st.error(f"Cookie解析中にエラーが発生しました: {e}")
         st.error(f"認証セッションを解析中にエラーが発生しました: {e}")
         return None
 
 # ==============================================================================
 # ----------------- アーカイブスクレイピング関数 -----------------
+# ... (変更なし) ...
 # ==============================================================================
 
 def scrape_live_archives(session, room_url_key):
     """アーカイブページにアクセスし、配信アーカイブデータとダウンロードリンクを抽出する"""
     ARCHIVE_URL = f"{BASE_URL}/room/{room_url_key}/live_archives"
-    #st.info(f"配信アーカイブページにアクセス中... (URL: {ARCHIVE_URL})")
     st.info(f"配信アーカイブページにアクセス中...")
     
     headers = {
@@ -142,7 +175,6 @@ def scrape_live_archives(session, room_url_key):
     
     if not table:
         if "ログイン" in r.text or "会員登録" in r.text or "サインイン" in r.text:
-            #st.error("🚨 Cookieが期限切れです。アーカイブページの内容がログインページのものと判定されました。新しいCookieを取得してください。")
             st.error("🚨 認証切れです。管理者に照会してください。")
             return None, None
             
@@ -175,7 +207,7 @@ def scrape_live_archives(session, room_url_key):
     return room_name, archives
 
 # ==============================================================================
-# ----------------- メイン関数 -----------------
+# ----------------- メイン関数 (修正: ルームIDからのURL取得を追加) -----------------
 # ==============================================================================
 
 def main():
@@ -187,8 +219,6 @@ def main():
         "<h1 style='font-size:28px; text-align:center; color:#1f2937;'>💾 SHOWROOM 配信アーカイブ ダウンロードツール</h1>",
         unsafe_allow_html=True
     )
-    #st.markdown("---")
-    #st.markdown("<p style='text-align: center;'>⚠️ <b>注意</b>: このツールは、<b>Secretsに設定された管理者Cookieが有効な間のみ</b>動作します。</p>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>⚠️ <b>注意</b>: このツールは、<b>管理者が認証セッションを許可している場合のみ</b>動作します。</p>", unsafe_allow_html=True)
     st.markdown("---")
 
@@ -196,9 +226,9 @@ def main():
     room_map = load_room_data(ROOM_LIST_URL)
     if room_map is None:
         return
-    st.success(f"✅ ルームリスト ({len(room_map)}件) の読み込みに成功しました。")
+    st.success(f"✅ ルームリスト ({len(room_map)}件) の読み込みに成功しました。（アカウントID → ルームID）")
 
-    # 2. アカウントIDの入力とルームURLの特定
+    # 2. アカウントIDの入力とルームIDの特定
     with st.form("archive_search_form"):
         st.markdown("##### 🔑 アカウントIDを入力してください")
         account_id_input = st.text_input(
@@ -209,7 +239,7 @@ def main():
         )
         search_button = st.form_submit_button("アーカイブを表示")
         
-    target_room_url = None
+    target_room_id = None
     
     if search_button:
         if not account_id_input:
@@ -217,26 +247,33 @@ def main():
             return
             
         if account_id_input in room_map:
-            target_room_url = room_map[account_id_input]
-            st.session_state['target_room_url'] = target_room_url
+            target_room_id = room_map[account_id_input]
+            st.session_state['target_room_id'] = target_room_id
             st.session_state['account_id'] = account_id_input
-            st.rerun()
+            # st.rerun() は API呼び出し後に実行
         else:
             st.error(f"🚨 ルームリストにアカウントID `{account_id_input}` が見つかりません。")
-            st.session_state['target_room_url'] = None
+            st.session_state['target_room_id'] = None
             return
-            
+    
     # フォーム外で再実行された場合の処理
-    if 'target_room_url' not in st.session_state or not st.session_state['target_room_url']:
+    if 'target_room_id' not in st.session_state or not st.session_state['target_room_id']:
         st.warning("⚠️ アカウントIDを入力して「アーカイブを表示」ボタンを押してください。")
         return
     
-    target_room_url = st.session_state['target_room_url']
+    target_room_id = st.session_state['target_room_id']
     account_id_input = st.session_state['account_id']
+    
+    # 🚨 修正点③: ルームIDからroom_url_key（ルームURL）を取得
+    room_url_key = get_room_url_key(target_room_id)
+    if not room_url_key:
+        return
 
-
-    #st.markdown(f"**対象アカウント**: `{account_id_input}` / **ルームURL**: `{target_room_url}`")
+    st.markdown(f"**対象アカウント**: `{account_id_input}` / **ルームID**: `{target_room_id}`")
+    st.success(f"✅ ルームURLキーを取得しました: `{room_url_key}`")
     st.info(f"現在の時刻（JST）: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}")
+    st.markdown("---")
+
 
     # 3. 認証セッションの構築
     session = create_authenticated_session(AUTH_COOKIE_STRING)
@@ -244,12 +281,11 @@ def main():
         return
 
     # 4. アーカイブデータのスクレイピング
-    room_name, archives = scrape_live_archives(session, target_room_url)
+    room_name, archives = scrape_live_archives(session, room_url_key)
     
     if room_name is None and archives is None: # 認証失敗
         return
     
-    st.markdown("---")
     st.header(f"ルーム名: {room_name} のアーカイブ")
     
     if not archives:
