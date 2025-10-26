@@ -229,7 +229,8 @@ def main():
     room_map = load_room_data(ROOM_LIST_URL)
     if room_map is None:
         return
-    st.success(f"✅ ルームリスト ({len(room_map)}件) の読み込みに成功しました。（アカウントID → ルームID）")
+    #st.success(f"✅ ルームリスト ({len(room_map)}件) の読み込みに成功しました。（アカウントID → ルームID）")
+    st.success(f"✅ ルームリスト ({len(room_map)}件) の読み込みに成功しました。")
 
     # 2. アカウントIDの入力とルームIDの特定
     with st.form("archive_search_form"):
