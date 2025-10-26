@@ -82,7 +82,8 @@ def load_room_data(room_list_url):
 def get_room_url_key(room_id):
     """ルームIDからSHOWROOMのAPIを叩いてroom_url_key（ルームURL）を取得する"""
     PROFILE_API_URL = f"{BASE_URL}/api/room/profile?room_id={room_id}"
-    st.info(f"ルームID `{room_id}` に基づき、APIから正確なルームURLキーを取得中...")
+    #st.info(f"ルームID `{room_id}` に基づき、APIから正確なルームURLキーを取得中...")
+    st.info(f"ルームURLキーを取得中...")
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
@@ -99,14 +100,16 @@ def get_room_url_key(room_id):
         if room_url_key:
             return room_url_key
         else:
-            st.error(f"🚨 API応答に `room_url_key` が含まれていません。ルームID `{room_id}` が不正な可能性があります。")
+            #st.error(f"🚨 API応答に `room_url_key` が含まれていません。ルームID `{room_id}` が不正な可能性があります。")
+            st.error(f"🚨 `room_url_key` が見つかりません。ルームID `{room_id}` が不正な可能性があります。")
             return None
             
     except requests.exceptions.RequestException as e:
-        st.error(f"🚨 ルームプロフィールAPIへのアクセスに失敗しました。ルームIDが不正、またはネットワークエラーです: {e}")
+        #st.error(f"🚨 ルームプロフィールAPIへのアクセスに失敗しました。ルームIDが不正、またはネットワークエラーです: {e}")
+        st.error(f"🚨 プロフィール情報へのアクセスに失敗しました。ルームIDが不正、またはネットワークエラーです: {e}")
         return None
     except Exception as e:
-        st.error(f"🚨 API応答の解析に失敗しました: {e}")
+        st.error(f"🚨 プロフィール情報の応答の解析に失敗しました: {e}")
         return None
 
 # ==============================================================================
@@ -269,7 +272,7 @@ def main():
     if not room_url_key:
         return
 
-    st.markdown(f"**対象アカウント**: `{account_id_input}` / **ルームID**: `{target_room_id}`")
+    #st.markdown(f"**対象アカウント**: `{account_id_input}` / **ルームID**: `{target_room_id}`")
     st.success(f"✅ ルームURLキーを取得しました: `{room_url_key}`")
     st.info(f"現在の時刻（JST）: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}")
     st.markdown("---")
@@ -286,7 +289,8 @@ def main():
     if room_name is None and archives is None: # 認証失敗
         return
     
-    st.header(f"ルーム名: {room_name} のアーカイブ")
+    #st.header(f"ルーム名: {room_name} のアーカイブ")
+    st.markdown(f"##### ルーム名: {room_name} のアーカイブ")
     
     if not archives:
         st.info("アーカイブは見つかりませんでした。（過去1ヶ月分のみ）")
