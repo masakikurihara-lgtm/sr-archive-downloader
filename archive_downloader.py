@@ -185,7 +185,7 @@ def main():
         "<h1 style='font-size:28px; text-align:center; color:#1f2937;'>💾 SHOWROOM 配信アーカイブ ダウンロードツール</h1>",
         unsafe_allow_html=True
     )
-    st.markdown("---")
+    #st.markdown("---")
     #st.markdown("<p style='text-align: center;'>⚠️ <b>注意</b>: このツールは、<b>Secretsに設定された管理者Cookieが有効な間のみ</b>動作します。</p>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>⚠️ <b>注意</b>: このツールは、<b>管理者が認証セッションを許可している場合のみ</b>動作します。</p>", unsafe_allow_html=True)
     st.markdown("---")
