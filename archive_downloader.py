@@ -233,7 +233,7 @@ def main():
     account_id_input = st.session_state['account_id']
 
 
-    st.markdown(f"**対象アカウント**: `{account_id_input}` / **ルームURL**: `{target_room_url}`")
+    #st.markdown(f"**対象アカウント**: `{account_id_input}` / **ルームURL**: `{target_room_url}`")
     st.info(f"現在の時刻（JST）: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')}")
 
     # 3. 認証セッションの構築
