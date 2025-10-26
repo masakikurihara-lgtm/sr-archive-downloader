@@ -185,8 +185,8 @@ def main():
         "<h1 style='font-size:28px; text-align:center; color:#1f2937;'>💾 SHOWROOM 配信アーカイブ ダウンロードツール</h1>",
         unsafe_allow_html=True
     )
-    st.markdown("---")
-    st.markdown("<p style='text-align: center;'>⚠️ <b>注意</b>: このツールは、<b>Secretsに設定された管理者Cookieが有効な間のみ</b>動作します。</p>", unsafe_allow_html=True)
+    #st.markdown("---")
+    #st.markdown("<p style='text-align: center;'>⚠️ <b>注意</b>: このツールは、<b>Secretsに設定された管理者Cookieが有効な間のみ</b>動作します。</p>", unsafe_allow_html=True)
     st.markdown("---")
 
     # 1. ルームリストの読み込み
@@ -197,10 +197,11 @@ def main():
 
     # 2. アカウントIDの入力とルームURLの特定
     with st.form("archive_search_form"):
-        st.markdown("#### 🔑 ライバーのアカウントIDを入力してください")
+        st.markdown("##### 🔑 アカウントIDを入力してください")
         account_id_input = st.text_input(
             "アカウントID:", 
             placeholder="例: mksoul_live_001",
+            type="password",
             key="account_id_input"
         )
         search_button = st.form_submit_button("アーカイブを表示")
