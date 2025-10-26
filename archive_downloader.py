@@ -49,8 +49,8 @@ def load_room_data(room_list_url):
 
         csv_file = io.StringIO(csv_data)
         
-        # ヘッダーを自動認識してDataFrameとして読み込む
-        df = pd.read_csv(csv_file) 
+        # ルームURL（C列、インデックス2）を強制的に文字列として読み込む
+        df = pd.read_csv(csv_file, dtype={2: str})
         
         # ユーザー指定の列インデックス（0始まりで C=2, D=3）
         # 列名ではなく、インデックス3（アカウントID）をキー、インデックス2（ルームURL）を値とする辞書を作成
